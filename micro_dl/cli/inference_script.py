@@ -37,7 +37,8 @@ def parse_args():
                         help='idx for focal plane')
     parser.add_argument('--base_image_dir', type=str, default=None,
                         help='base dir with whole/entire images')
-
+    parser.add_argument('--tile_image_dir', type=str, default=None,
+                        help='Dir with corresponding tile images')
     parser.add_argument('--image_meta_fname', type=str, default=None,
                         help='csv holding meta for all images in study')
 
@@ -50,8 +51,20 @@ def run_inference(args):
 
     with open(args.config, 'r') as f:
         config = yaml.load(f)
-    df_test = pd.read_csv(os.path.join(config['trainer']['model_dir'],
-                                       'test_metadata.csv'))
+
+    # Get model directory from model_fname
+    model_dir = os.path.dirname(args.model_fname)
+    df_test = pd.read_csv(os.path.join(model_dir, 'test_metadata.csv'))
+
+    test_dir = os.path.dirname(df_test.loc[0, "fpaths_input"])
+    print(test_dir)
+    if test_dir != args.tile_image_dir:
+        for idx, row in df_test.iterrows():
+            df_test.loc[idx, "fpaths_input"] = os.path.join(
+                args.tile_image_dir,
+                os.path.basename(df_test.loc[idx, "fpaths_input"]),
+            )
+            print(idx, df_test.loc[idx, "fpaths_input"])
 
     if 'masked_loss' in config['trainer']:
         ds_test = DataSetWithMask(input_fnames=df_test['fpaths_input'],
@@ -70,10 +83,10 @@ def run_inference(args):
     test_perf_metrics = ev_inst.evaluate_model(ds_test)
 
     ev_inst.predict_on_tiles(ds_test, nb_batches=args.num_batches)
-    idx_fname = os.path.join(os.path.dirname(args.model_fname),
-                             'split_samples.pkl')
+    idx_fname = os.path.join(model_dir, 'split_samples.pkl')
     with open(idx_fname, 'rb') as f:
         split_samples = pickle.load(f)
+    print(split_samples['test'])
 
     image_meta = pd.read_csv(args.image_meta_fname)
     ev_inst.predict_on_full_image(image_meta=image_meta,
