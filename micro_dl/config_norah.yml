@@ -1,0 +1,76 @@
+dataset:
+    preprocess: False
+    data_dir: '/data/norah/small_set/image_tile_256-256_step_256-256'
+    input_channels: [3]
+    target_channels: [4]
+    split_by_column: sample_num
+    split_ratio:
+        train: 0.7
+        val: 0.15
+        test: 0.15
+    height: 256
+    width: 256
+verbose: 10
+prediciton:
+    output_dir: '/data/norah/small_set/091818_3/'
+performance:
+    data_dir: '/data/norah/small_set/091818_3/'
+    model_performance_dir: '/data/norah/small_set/model_performance'
+    save_metrics: True
+trainer:
+    model_dir: '/data/norah/small_set/models/091818_3/'
+    batch_size: 16
+    max_epochs: 200
+    patience: 20
+    metrics: binary_accuracy
+    loss: binary_crossentropy
+    callbacks:
+        LearningRateScheduler:
+            lr_find: False
+            base_lr: 0.00001
+            max_lr: 0.0015
+            step_size: 2
+            gamma: 0.999
+            scale_mode: cycle
+            max_epochs: 3
+            lr_chart: '/data/norah/small_set/plots'
+            fig_fname: '/data/norah/small_set/plot_phase'
+        EarlyStopping:
+            mode: min
+            monitor: val_loss
+            patience: 10
+            verbose: True
+        ModelCheckpoint:
+            mode: min
+            monitor: val_loss
+            save_best_only: True
+            verbose: True
+        TensorBoard:
+            histogram_freq: 0
+            verbose: True
+    IntermediateVisualization: True
+    optimizer:
+        lr: 0
+        name: Nadam
+network:
+    class: UNet2D
+    num_input_channels: 1
+    data_format: 'channels_first'
+    height: 256
+    width: 256
+    batch_norm: True
+    activation: relu
+    pooling_type: max
+    filter_size: 3
+    activation:
+        type: relu
+    dropout: 0.2
+    num_filters_per_block: [32, 64, 128, 192, 256]
+    num_convs_per_block: 2
+    block_sequence: conv-activation-bn
+    skip_merge_type: concat
+    upsampling: bilinear
+    dropout: 0.2
+    residual: True
+    num_target_channels: 1
+    final_activation: sigmoid

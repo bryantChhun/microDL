@@ -38,13 +38,17 @@ def get_row_idx(frames_metadata, time_idx,
     :param int channel_idx: get info for this channel
     :param int slice_idx: get info for this focal plane (2D)
     """
+    #print("\nThis is metadata: ", frames_metadata)
+    print("\nTime IDX: ", time_idx)
+    print("\nChannel idx: ", channel_idx)
+
     if slice_idx > -1:
         row_idx = ((frames_metadata['time_idx'] == time_idx) &
                    (frames_metadata['channel_idx'] == channel_idx) &
                    (frames_metadata['slice_idx'] == slice_idx))
     else:
-        row_idx = ((frames_metadata['time_idx'] == time_idx) &
-                   (frames_metadata['channel_idx'] == channel_idx))
+        row_idx = ((frames_metadata['timepoint'] == time_idx) &
+                   (frames_metadata['channel_num'] == channel_idx))
     return row_idx
 
 
@@ -129,10 +133,10 @@ def validate_metadata_indices(frames_metadata,
         pos_ids,
     ]
     col_names = [
-        "channel_idx",
-        "slice_idx",
-        "time_idx",
-        "pos_idx",
+        "channel_num",
+        "slice_num",
+        "timepoint",
+        "sample_num",
     ]
     metadata_ids = {}
     for meta_id_name, ids, col_name in zip(meta_id_names, id_list, col_names):

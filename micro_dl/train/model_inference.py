@@ -98,7 +98,7 @@ class ModelEvaluator:
         if model is not None:
             self.model = model
         else:
-            self.model = load_model(config['network'], model_fname)
+            self.model = load_model(config['network'], model_fname, predict=True)
 
     def evaluate_model(self, ds_test):
         """Evaluate model performance on the test set
@@ -155,7 +155,6 @@ class ModelEvaluator:
         :returns: np.array of shape nb_channels, im_size (with or without
          flat field correction)
         """
-
         cur_images = []
         for ch in channel_ids:
             cur_fname = os.path.join(tp_dir,
@@ -210,7 +209,9 @@ class ModelEvaluator:
             end_idx = np.min([(batch_idx + 1) * batch_size,
                              len(crop_indices)])
             ip_batch_list = []
+
             for cur_index in crop_indices[start_idx:end_idx]:
+
                 cur_index_slice = self._get_crop_indices(ip_image.shape,
                                                          tile_dim,
                                                          cur_index)
@@ -365,9 +366,10 @@ class ModelEvaluator:
         ip_channel_ids = self.config['dataset']['input_channels']
         op_channel_ids = self.config['dataset']['target_channels']
         tp_channel_ids = aux_utils.validate_metadata_indices(
-            image_meta, timepoint_ids=timepoint_ids
+            image_meta, time_ids=timepoint_ids
         )
-        tp_idx = tp_channel_ids['timepoints']
+        print("this is tp_channel_ids: ", tp_channel_ids)
+        tp_idx = tp_channel_ids['time_ids']
         tile_size = [self.config['network']['height'],
                      self.config['network']['width']]
 
@@ -396,8 +398,7 @@ class ModelEvaluator:
         for tp in tp_idx:
             # get the meta for all images in tp_dir and channel_dir
             row_idx_ip0 = aux_utils.get_row_idx(
-                image_meta, tp, ip_channel_ids[0],
-                focal_plane_idx=focal_plane_idx
+                image_meta, tp, ip_channel_ids[0]
             )
             ip0_meta = image_meta[row_idx_ip0]
 
@@ -417,24 +418,25 @@ class ModelEvaluator:
             pred_dir = os.path.join(self.config['trainer']['model_dir'],
                                     'predicted_images', 'tp_{}'.format(tp))
             for fname in test_image_fnames:
-                target_image = self._read_one(tp_dir, op_channel_ids, fname,
-                                              ff_dir)
-                input_image = self._read_one(tp_dir, ip_channel_ids, fname,
-                                             ff_dir)
-                pred_tiles = self._pred_image(input_image,
-                                              crop_indices,
-                                              batch_size)
-                pred_image = self._stich_image(pred_tiles, crop_indices,
-                                               input_image.shape, batch_size,
-                                               tile_size, overlap_size,
-                                               place_operation)
-                pred_fname = '{}.npy'.format(fname.split('.')[0])
-                for idx, op_ch in enumerate(op_channel_ids):
-                    op_dir = os.path.join(pred_dir, 'channel_{}'.format(op_ch))
-                    if not os.path.exists(op_dir):
-                        os.makedirs(op_dir)
-                    np.save(os.path.join(op_dir, pred_fname), pred_image[idx])
-                    save_predicted_images(
-                        [input_image], [target_image],
-                        [pred_image], os.path.join(op_dir, 'collage'),
-                        output_fname=fname.split('.')[0])
+                if fname.split("_")[-1].split(".")[0] == 'z0':
+                    target_image = self._read_one(tp_dir, op_channel_ids, fname,
+                                                  ff_dir)
+                    input_image = self._read_one(tp_dir, ip_channel_ids, fname,
+                                                 ff_dir)
+                    pred_tiles = self._pred_image(input_image,
+                                                  crop_indices,
+                                                  batch_size)
+                    pred_image = self._stich_image(pred_tiles, crop_indices,
+                                                   input_image.shape, batch_size,
+                                                   tile_size, overlap_size,
+                                                   place_operation)
+                    pred_fname = '{}.npy'.format(fname.split('.')[0])
+                    for idx, op_ch in enumerate(op_channel_ids):
+                        op_dir = os.path.join(pred_dir, 'channel_{}'.format(op_ch))
+                        if not os.path.exists(op_dir):
+                            os.makedirs(op_dir)
+                        np.save(os.path.join(op_dir, pred_fname), pred_image[idx])
+                        save_predicted_images(
+                            [input_image], [target_image],
+                            [pred_image], os.path.join(op_dir, 'collage'),
+                            output_fname=fname.split('.')[0])

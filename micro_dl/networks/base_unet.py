@@ -18,7 +18,7 @@ class BaseUNet(BaseConvNet):
     last block to match the input image size.
     """
 
-    def __init__(self, network_config, predict=False):
+    def __init__(self, network_config, predict=True):
         """Init
 
         :param dict network_config: dict with all network associated parameters
@@ -34,8 +34,9 @@ class BaseUNet(BaseConvNet):
                       'num_target_channels',
                       'residual',
                       'block_sequence']
-
+        predict=True
         self.config = network_config
+        print("This is config: ", self.config)
         num_down_blocks = len(network_config['num_filters_per_block']) - 1
 
         if not predict:

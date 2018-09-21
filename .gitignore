@@ -2,3 +2,10 @@
 .DS_Store
 __pycache__/
 .ipynb_checkpoints/
+
+.Python
+bin/
+include/
+lib/
+
+pip-selfcheck.json
