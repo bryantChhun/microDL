@@ -263,7 +263,7 @@ class ImageTiler:
                     pos_idx=pos_idx,
                     extra_field=rcsl_idx,
                 )
-                file_names.append(os.path.join(save_dir, file_name))
+                file_names.append((i, os.path.join(save_dir, file_name)))
                 tile_idx = tile_indices[i]
                 if tiled_metadata is not None:
                     tiled_metadata = tiled_metadata.append(
@@ -277,8 +277,8 @@ class ImageTiler:
                          },
                         ignore_index=True,
                     )
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-            image_utils.write_tiles(file_names, tiles)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
+                res = ex.map(image_utils.write_tile, file_names, tiles)
         else:
             for i, data_tuple in enumerate(tiled_data):
                 rcsl_idx = data_tuple[0]

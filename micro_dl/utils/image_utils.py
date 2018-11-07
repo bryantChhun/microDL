@@ -1,7 +1,7 @@
 """Utility functions for processing images"""
 import cv2
 import itertools
-from numba import jit, njit, prange
+import concurrent.futures
 import numpy as np
 import os
 from scipy.ndimage.morphology import binary_fill_holes
@@ -228,6 +228,14 @@ def write_tiles(file_names, tiles):
             fix_imports=True)
 
 
+def write_tile(file_name_tuple, tiles):
+    (i, file_name) = file_name_tuple
+    np.save(file_name,
+            tiles[i, ...],
+            allow_pickle=True,
+            fix_imports=True)
+
+
 def crop_at_indices(input_image, crop_indices, tile_size, isotropic=False):
     """Crop image into tiles at given indices
 
@@ -271,9 +279,8 @@ def crop_at_indices(input_image, crop_indices, tile_size, isotropic=False):
     return cropped_img_list, tiles
 
 
-@njit(parallel=True)
 def get_tiles(input_image, crop_indices, tiles):
-    for i in prange(len(crop_indices)):
+    for i in range(len(crop_indices)):
         cur_idx = crop_indices[i]
         tiles[i, ...] = input_image[cur_idx[0]: cur_idx[1],
                       cur_idx[2]: cur_idx[3], ...]
