@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import time
 
 from micro_dl.input.estimate_flat_field import FlatFieldEstimator2D
 from micro_dl.input.generate_masks import MaskProcessor
@@ -55,6 +56,7 @@ def pre_process(pp_config):
     correct_flat_field = True if pp_config['correct_flat_field'] else False
     flat_field_dir = None
     if correct_flat_field:
+        start = time.time()
         flat_field_inst = FlatFieldEstimator2D(
             input_dir=input_dir,
             output_dir=output_dir,
@@ -62,11 +64,13 @@ def pre_process(pp_config):
         )
         flat_field_inst.estimate_flat_field()
         flat_field_dir = flat_field_inst.get_flat_field_dir()
+        print("Flatfield estimation time:", time.time() - start)
 
     # Generate masks
     mask_dir = None
     mask_channel = None
     if pp_config['create_masks']:
+        start = time.time()
         mask_processor_inst = MaskProcessor(
             input_dir=input_dir,
             output_dir=output_dir,
@@ -85,11 +89,13 @@ def pre_process(pp_config):
         )
         mask_dir = mask_processor_inst.get_mask_dir()
         mask_channel = mask_processor_inst.get_mask_channel()
+        print("Mask creation time:", time.time() - start)
 
     # Tile frames
     tile_dir = None
     tile_mask_dir = None
     if pp_config['do_tiling']:
+        start = time.time()
         tile_inst = ImageTiler(
             input_dir=input_dir,
             output_dir=output_dir,
@@ -115,6 +121,7 @@ def pre_process(pp_config):
             tile_mask_dir = tile_inst.get_tile_mask_dir()
         else:
             tile_inst.tile_stack()
+        print("Tile creation time:", time.time() - start)
 
     # Write in/out/mask/tile paths and config to json in output directory
     processing_info = {

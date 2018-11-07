@@ -1,5 +1,6 @@
 """Tile images for training"""
 
+import concurrent.futures
 import numpy as np
 import os
 import pandas as pd
@@ -243,36 +244,72 @@ class ImageTiler:
          tiles
         :return dataframe tiled_metadata: Metadata with rows added to it
         """
-        for i, data_tuple in enumerate(tiled_data):
-            rcsl_idx = data_tuple[0]
-            file_name = aux_utils.get_im_name(
-                time_idx=time_idx,
-                channel_idx=channel_idx,
-                slice_idx=slice_idx,
-                pos_idx=pos_idx,
-                extra_field=rcsl_idx,
-            )
-            tile = data_tuple[1]
-            # Check and potentially flip dimensions for 3D data
-            if self.data_format == 'channels_first' and len(tile.shape) > 2:
-                tile = np.swapaxes(tile, 0, 2)
-            np.save(os.path.join(save_dir, file_name),
-                    tile,
-                    allow_pickle=True,
-                    fix_imports=True)
-            tile_idx = tile_indices[i]
-            if tiled_metadata is not None:
-                tiled_metadata = tiled_metadata.append(
-                    {"channel_idx": channel_idx,
-                     "slice_idx": slice_idx,
-                     "time_idx": time_idx,
-                     "file_name": file_name,
-                     "pos_idx": pos_idx,
-                     "row_start": tile_idx[0],
-                     "col_start": tile_idx[2],
-                     },
-                    ignore_index=True,
+        # print(len(tiled_data))
+        istuple = False
+        if isinstance(tiled_data, tuple):
+            istuple = True
+            (tiled_data, tiles) = tiled_data
+        file_names = []
+        if istuple:
+            flip = self.data_format == 'channels_first' and len(tiles.shape) > 3
+            if flip:
+                tiles = np.transpose(tiles, [0, 3, 1, 2])
+            for i, data_tuple in enumerate(tiled_data):
+                rcsl_idx = data_tuple
+                file_name = aux_utils.get_im_name(
+                    time_idx=time_idx,
+                    channel_idx=channel_idx,
+                    slice_idx=slice_idx,
+                    pos_idx=pos_idx,
+                    extra_field=rcsl_idx,
                 )
+                file_names.append(os.path.join(save_dir, file_name))
+                tile_idx = tile_indices[i]
+                if tiled_metadata is not None:
+                    tiled_metadata = tiled_metadata.append(
+                        {"channel_idx": channel_idx,
+                         "slice_idx": slice_idx,
+                         "time_idx": time_idx,
+                         "file_name": file_name,
+                         "pos_idx": pos_idx,
+                         "row_start": tile_idx[0],
+                         "col_start": tile_idx[2],
+                         },
+                        ignore_index=True,
+                    )
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+            image_utils.write_tiles(file_names, tiles)
+        else:
+            for i, data_tuple in enumerate(tiled_data):
+                rcsl_idx = data_tuple[0]
+                file_name = aux_utils.get_im_name(
+                    time_idx=time_idx,
+                    channel_idx=channel_idx,
+                    slice_idx=slice_idx,
+                    pos_idx=pos_idx,
+                    extra_field=rcsl_idx,
+                )
+                tile = data_tuple[1]
+                # Check and potentially flip dimensions for 3D data
+                if self.data_format == 'channels_first' and len(tile.shape) > 2:
+                    tile = np.swapaxes(tile, 0, 2)
+                np.save(os.path.join(save_dir, file_name),
+                        tile,
+                        allow_pickle=True,
+                        fix_imports=True)
+                tile_idx = tile_indices[i]
+                if tiled_metadata is not None:
+                    tiled_metadata = tiled_metadata.append(
+                        {"channel_idx": channel_idx,
+                         "slice_idx": slice_idx,
+                         "time_idx": time_idx,
+                         "file_name": file_name,
+                         "pos_idx": pos_idx,
+                         "row_start": tile_idx[0],
+                         "col_start": tile_idx[2],
+                         },
+                        ignore_index=True,
+                    )
         return tiled_metadata
 
     def _get_flat_field(self, channel_idx):
@@ -353,6 +390,7 @@ class ImageTiler:
                             tiled_image_data = image_utils.crop_at_indices(
                                 input_image=im,
                                 crop_indices=tile_indices,
+                                tile_size=self.tile_size,
                                 isotropic=self.isotropic,
                             )
                         tiled_metadata = self._write_tiled_data(
@@ -491,6 +529,7 @@ class ImageTiler:
                         tiled_image_data = image_utils.crop_at_indices(
                             input_image=im,
                             crop_indices=tile_indices,
+                            tile_size=self.tile_size,
                             isotropic=self.isotropic,
                         )
                         # Loop through all the tiles, write and add to metadata
