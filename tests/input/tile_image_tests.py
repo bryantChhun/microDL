@@ -162,8 +162,11 @@ class TestImageTiler(unittest.TestCase):
             numpy.testing.assert_array_equal(im_stack[..., z], im_norm)
 
     def test_write_tiled_data(self):
-        tiled_data = [('r0-5_c0-5_sl0-3', np.zeros((5, 5, 3), dtype=np.float)),
-                      ('r4-9_c0-5_sl0-3', np.ones((5, 5, 3), dtype=np.float))]
+        tile = np.zeros((5, 5, 3), dtype=np.float)
+        tile[..., 1] = 1
+        tile[..., 2] = 2
+        tiled_data = [['r0-5_c0-5_sl0-3', tile],
+                      ['r4-9_c0-5_sl0-3', 5 * tile]]
         tiled_metadata = self.tile_inst._get_dataframe()
         tile_indices = [(0, 5, 0, 5), (4, 9, 0, 5)]
         tile_dir = self.tile_inst.get_tile_dir()
@@ -422,8 +425,11 @@ class TestImageMaskTiler(unittest.TestCase):
             numpy.testing.assert_array_equal(im_stack[..., z], im_norm)
 
     def test_write_tiled_data(self):
-        tiled_data = [('r0-5_c0-5_sl0-3', np.zeros((5, 5, 3), dtype=np.float)),
-                      ('r5-10_c0-5_sl0-3', np.ones((5, 5, 3), dtype=np.float))]
+        tile = np.zeros((5, 5, 3), dtype=np.float)
+        tile[..., 1] = 1
+        tile[..., 2] = 2
+        tiled_data = [['r0-5_c0-5_sl0-3', tile],
+                      ['r5-10_c0-5_sl0-3', 5 * tile]]
         tiled_metadata = self.tile_inst._get_dataframe()
         tile_indices = [(0, 5, 0, 5), (4, 9, 0, 5)]
         tile_dir = self.tile_inst.get_tile_dir()
